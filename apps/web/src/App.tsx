@@ -5,12 +5,14 @@ import { VmCard } from "./components/VmCard";
 import { AgentChat } from "./components/AgentChat";
 import { SpawnVmDialog } from "./components/SpawnVmDialog";
 import { Settings } from "./components/Settings";
+import { AddKpiDialog } from "./components/AddKpiDialog";
 
 export default function App() {
   const [kpis, setKpis] = useState<Kpi[]>([]);
   const [vms, setVms] = useState<Vm[]>([]);
   const [tab, setTab] = useState<"dashboard" | "chat" | "settings">("dashboard");
   const [spawnFor, setSpawnFor] = useState<Kpi | null>(null);
+  const [addKpiOpen, setAddKpiOpen] = useState(false);
 
   useEffect(() => {
     api.listKpis().then(setKpis).catch(() => {});
@@ -49,7 +51,15 @@ export default function App() {
       {tab === "dashboard" ? (
         <main className="flex-1 p-4 grid gap-6 grid-cols-1 lg:grid-cols-[2fr_1fr]">
           <section>
-            <SectionHeader>KPIs ({kpis.length})</SectionHeader>
+            <div className="flex items-center mb-2">
+              <SectionHeader>KPIs ({kpis.length})</SectionHeader>
+              <button
+                onClick={() => setAddKpiOpen(true)}
+                className="ml-auto px-2.5 py-1 rounded border border-accent text-accent text-xs font-mono hover:bg-accent hover:text-bg transition-colors"
+              >
+                + add kpi
+              </button>
+            </div>
             <div className="grid gap-3 grid-cols-1 sm:grid-cols-2">
               {kpis.length === 0 && <Empty>No KPIs yet — ask the agent to create one.</Empty>}
               {kpis.map((k) => (
@@ -67,7 +77,14 @@ export default function App() {
             <div className="grid gap-3">
               {vms.length === 0 && <Empty>No VMs running.</Empty>}
               {vms.map((v) => (
-                <VmCard key={v.id} vm={v} onKill={() => api.killVm(v.id)} />
+                <VmCard
+                  key={v.id}
+                  vm={v}
+                  kpi={kpis.find((k) => k.id === v.kpiId)}
+                  onPause={() => api.pauseVm(v.id)}
+                  onResume={() => api.resumeVm(v.id)}
+                  onKill={() => api.killVm(v.id)}
+                />
               ))}
             </div>
           </section>
@@ -83,6 +100,12 @@ export default function App() {
       )}
 
       {spawnFor && <SpawnVmDialog kpi={spawnFor} onClose={() => setSpawnFor(null)} />}
+      {addKpiOpen && (
+        <AddKpiDialog
+          onClose={() => setAddKpiOpen(false)}
+          onCreated={() => api.listKpis().then(setKpis).catch(() => {})}
+        />
+      )}
     </div>
   );
 }

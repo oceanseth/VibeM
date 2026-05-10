@@ -1,5 +1,5 @@
 # Inside-VM agent: headless Chromium + GPT-4o tool-use loop.
-FROM mcr.microsoft.com/playwright:v1.46.0-jammy
+FROM mcr.microsoft.com/playwright:v1.59.1-jammy
 
 WORKDIR /app
 COPY package.json ./

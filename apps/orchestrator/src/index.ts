@@ -12,7 +12,7 @@ import {
   deleteSetting,
 } from "./settings.js";
 import { startCron } from "./cron.js";
-import { killContainer } from "./docker.js";
+import { killContainer, pauseContainer, spawnAgentContainer } from "./docker.js";
 
 const app = express();
 app.use(express.json({ limit: "1mb" }));
@@ -77,11 +77,54 @@ app.post("/api/vms/spawn-with-strategy", async (req, res) => {
 
 // ---------- VMs ----------
 app.get("/api/vms", (_req, res) => res.json(store.listVms()));
+app.get("/api/vms/:id/events", (req, res) => {
+  const limit = Math.min(500, Number(req.query.limit ?? 200));
+  res.json(store.listVmEvents(req.params.id, limit));
+});
+
+// Pause: stop the container but keep the VM row so it can be resumed.
+app.post("/api/vms/:id/pause", async (req, res) => {
+  const vm = store.getVm(req.params.id);
+  if (!vm) return res.status(404).json({ error: "not found" });
+  if (vm.containerId) await pauseContainer(vm.id, vm.containerId);
+  else store.setVmStatus(vm.id, "paused");
+  res.json({ ok: true });
+});
+
+// Resume: spawn a fresh container with the same mission/strategy/guidance.
+// The inside-VM agent's OpenAI conversation does not persist across runs, so
+// the new run starts fresh but with the same context.
+app.post("/api/vms/:id/resume", async (req, res) => {
+  const vm = store.getVm(req.params.id);
+  if (!vm) return res.status(404).json({ error: "not found" });
+  if (vm.status === "running" || vm.status === "spawning")
+    return res.status(409).json({ error: "already running" });
+  store.setVmStatus(vm.id, "spawning");
+  // Compose the same mission body the agent loop builds on initial spawn.
+  const mission =
+    vm.mission +
+    (vm.strategyMd ? `\n\n## Strategy\n${vm.strategyMd}` : "") +
+    (vm.userGuidance ? `\n\n## Admin guidance\n${vm.userGuidance}` : "");
+  spawnAgentContainer({
+    vmId: vm.id,
+    kpiId: vm.kpiId,
+    provider: vm.provider,
+    mission,
+    orchestratorUrl: `http://host.docker.internal:${env.PORT}`,
+  }).catch((err) => {
+    store.setVmStatus(vm.id, "error");
+    store.appendVmEvent(vm.id, "error", { message: String(err?.message ?? err) });
+  });
+  store.appendVmEvent(vm.id, "resume", null);
+  res.json({ ok: true });
+});
+
+// Kill: stop container AND delete the VM row + its events. Frontend confirms.
 app.delete("/api/vms/:id", async (req, res) => {
   const vm = store.getVm(req.params.id);
   if (!vm) return res.status(404).json({ error: "not found" });
   if (vm.containerId) await killContainer(vm.id, vm.containerId);
-  else store.setVmStatus(vm.id, "done");
+  store.deleteVm(vm.id);
   res.json({ ok: true });
 });
 

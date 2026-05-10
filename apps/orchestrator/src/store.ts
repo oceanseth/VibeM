@@ -149,6 +149,11 @@ export const store = {
       )
       .all() as VmRow[];
   },
+  deleteVm(id: string) {
+    db.prepare("DELETE FROM vm_events WHERE vm_id = ?").run(id);
+    db.prepare("DELETE FROM vms WHERE id = ?").run(id);
+    bus.publish({ type: "vm.kill", data: { vmId: id } });
+  },
   setVmStatus(id: string, status: VmRow["status"], containerId?: string | null) {
     if (containerId !== undefined) {
       db.prepare("UPDATE vms SET status = ?, container_id = ? WHERE id = ?").run(status, containerId, id);
@@ -163,12 +168,28 @@ export const store = {
     ).run(addTokens, id);
     bus.publish({ type: "vm.update", data: { vmId: id } });
   },
+  listVmEvents(vmId: string, limit = 200) {
+    const rows = db
+      .prepare(
+        "SELECT id, ts, type, data_json FROM vm_events WHERE vm_id = ? ORDER BY id DESC LIMIT ?"
+      )
+      .all(vmId, limit) as { id: number; ts: string; type: string; data_json: string | null }[];
+    // Newest-first from SQL; reverse so the UI gets oldest-first.
+    return rows.reverse().map((r) => ({
+      id: r.id,
+      ts: r.ts,
+      type: r.type,
+      data: r.data_json ? JSON.parse(r.data_json) : null,
+    }));
+  },
   appendVmEvent(vmId: string, type: string, payload: unknown) {
     db.prepare("INSERT INTO vm_events (vm_id, type, data_json) VALUES (?, ?, ?)").run(
       vmId,
       type,
       JSON.stringify(payload ?? null)
     );
+    // Touch last_event_at so the dashboard can show accurate end-time for stopped VMs.
+    db.prepare("UPDATE vms SET last_event_at = datetime('now') WHERE id = ?").run(vmId);
     bus.publish({ type: "vm.event", data: { vmId, eventType: type, payload } });
   },
 

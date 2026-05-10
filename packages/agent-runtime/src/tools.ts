@@ -90,8 +90,9 @@ export const tools: Tool[] = [
     },
   },
   {
-    name: "done",
-    description: "Mark the mission complete. Stops the agent loop.",
+    name: "report_milestone",
+    description:
+      "Record a milestone (e.g. 'finished posting in 3 subreddits') WITHOUT stopping the loop. Use whenever you complete a meaningful chunk of the mission so the dashboard shows progress. The loop keeps running.",
     schema: z.object({ summary: z.string() }),
     run: async (a) => a,
   },

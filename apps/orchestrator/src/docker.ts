@@ -79,3 +79,15 @@ export async function killContainer(vmId: string, containerId: string) {
     store.setVmStatus(vmId, "done");
   }
 }
+
+// Stop the container; container has AutoRemove so it goes away. The VM row
+// stays so we can resume it by spawning a fresh container with the same params.
+export async function pauseContainer(vmId: string, containerId: string) {
+  try {
+    const c = docker.getContainer(containerId);
+    await c.stop({ t: 2 }).catch(() => {});
+  } finally {
+    store.setVmStatus(vmId, "paused", null);
+    store.appendVmEvent(vmId, "paused", null);
+  }
+}

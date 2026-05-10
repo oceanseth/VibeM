@@ -27,6 +27,13 @@ export type Vm = {
   evalResult?: string;
 };
 
+export type VmEvent = {
+  id: number;
+  ts: string;
+  type: string;
+  data: unknown;
+};
+
 export type DraftStrategy = {
   provider: string;
   mission: string;
@@ -71,6 +78,10 @@ export const api = {
   createKpi: (k: Omit<Kpi, "id" | "createdAt">) =>
     j<Kpi>("/api/kpis", { method: "POST", body: JSON.stringify(k) }),
   listVms: () => j<Vm[]>("/api/vms"),
+  listVmEvents: (id: string, limit = 200) =>
+    j<VmEvent[]>(`/api/vms/${id}/events?limit=${limit}`),
+  pauseVm: (id: string) => j<{ ok: true }>(`/api/vms/${id}/pause`, { method: "POST" }),
+  resumeVm: (id: string) => j<{ ok: true }>(`/api/vms/${id}/resume`, { method: "POST" }),
   killVm: (id: string) => j<{ ok: true }>(`/api/vms/${id}`, { method: "DELETE" }),
   draftStrategy: (kpiId: string, body: { userGuidance?: string; provider?: string }) =>
     j<DraftStrategy>(`/api/kpis/${kpiId}/draft-strategy`, {

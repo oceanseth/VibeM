@@ -1,0 +1,105 @@
+VibeM — 4 minute hackathon demo
+================================
+
+Target: ~4:00 spoken at a natural pace (~150 wpm, ~600 words).
+Bracketed cues are demo actions; everything else is what you say.
+
+---
+
+[0:00 — HOOK] (~25s)
+
+"Vibe coding is fun until you realize you have ten things you want to
+optimize and only one of you. VibeM fixes that. It's vibe coding for
+goals: you tell it what to optimize, and it spins up a swarm of
+autonomous browser agents that work on it for you — continuously, in
+the background, on your laptop."
+
+[0:25 — WHAT YOU SEE] (~30s) [open dashboard]
+
+"This is the dashboard. KPIs on the left — anything you care about:
+subscriber count, inbound leads, GitHub stars. On the right, live VMs
+working on those KPIs. Each VM is a Docker container running headless
+Chromium plus GPT-4o in a tool-use loop. They click around real
+websites the same way I would — just faster and more patiently."
+
+[0:55 — ADD A KPI] (~30s) [click + add kpi]
+
+"Let me add one. [type name and target] Done. [click + spawn vm]
+Now watch — VibeM doesn't spawn a generic worker. Before launching, it
+drafts a strategy."
+
+[1:25 — STRATEGY DIALOG] (~50s) [show modal]
+
+"GPT-4o reads our GUIDANCE.md before it answers. That doc is what
+makes this special — it knows that posting on Reddit takes hours to
+show signal, that submitting forms takes a day for replies. So it
+sets evaluate-after to four hours. The strategy itself is editable.
+I can paste in 'avoid r/saas, target r/startups' and click re-draft.
+
+The strategy travels with the VM. When eval time fires, gpt-4o-mini
+scores not just whether the KPI moved, but whether *the strategy
+worked* — the original plan is part of the prompt. That's the lag-
+aware eval system."
+
+[2:15 — VM RUNNING + LIVE LOG] (~45s) [click spawn, expand details]
+
+"Spawn. [click] VM is up. Look at the card — started timestamp,
+runtime ticking live, eval countdown — four hours from now, scoring
+runs automatically.
+
+I expand details. This is the inner agent log streaming over SSE in
+real time. Every tool call — goto, click, type, read — every
+assistant turn, every step's token cost. I can introspect exactly
+what my agent is thinking, right now. No black box."
+
+[3:00 — PAUSE / KILL + PERSISTENT LOOP] (~30s)
+
+"The inside-VM agent runs forever until I stop it. There's no 'done'
+tool — if it falls quiet, the loop nudges it back to action. A
+sliding context window keeps token cost predictable across long
+sessions.
+
+Pause stops the container; the row stays so I can resume. Resume
+spawns a fresh container with the same strategy. Kill — confirmation
+dialog, because it's permanent — wipes the row and event history."
+
+[3:30 — ARCHITECTURE] (~20s)
+
+"Three calls worth flagging. One: SQLite, npm workspaces, Docker
+socket — zero infra. Clone, npm install, npm run dev. Two: the
+Settings tab stores OpenAI keys and provider login sessions —
+Mulerun, Tasklet — and injects them as cookies into every new VM, so
+agents act as me. Three: it's Capacitor-ready. Wrap the Vite build
+and run your agent farm from your phone."
+
+[3:50 — CLOSE] (~10s)
+
+"VibeM. One chat box, many autonomous workers, on your hardware.
+Thanks."
+
+---
+
+Talking points to keep in your back pocket
+------------------------------------------
+
+If asked about cost: MAX_TOKENS_PER_VM is a soft cap (default 2M ≈
+a few dollars per VM). On exceed, the VM exits and the dashboard
+shows "budget_exceeded" — you decide whether to resume.
+
+If asked about scale: today everything is on one host (Docker
+Desktop). The README has a path to multi-host: replace dockerode with
+a Swarm/k3s cluster client, swap SQLite for Postgres, swap SSE for
+NATS or Redis pubsub. The orchestrator is the only stateful piece.
+
+If asked about safety/jailbreaks: localhost-only by design.
+Orchestrator mounts /var/run/docker.sock — that's effectively root
+on the host. Don't expose port 8787 to the internet.
+
+If asked why GPT-4o not Claude: hackathon got an OpenAI grant. The
+outside agent could swap to Claude trivially — env scaffolding
+already supports ANTHROPIC_API_KEY.
+
+If asked what's next: per-VM checkpointing so resume actually
+continues the agent's prior conversation, recurring spawn schedules
+(not just recurring evals), and a "vibem-vm" Claude Code skill so
+you can drive VibeM from the terminal too.
