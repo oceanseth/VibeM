@@ -1,0 +1,28 @@
+# Convenience compose for local dev. The agent-runtime image is built once
+# (see `npm run build:agent`) and spawned dynamically by the orchestrator
+# via the Docker socket — it is NOT a long-running compose service.
+services:
+  orchestrator:
+    build:
+      context: .
+      dockerfile: apps/orchestrator/Dockerfile
+    ports: ["8787:8787"]
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - DATA_DIR=/data
+      - AGENT_IMAGE=vibem/agent-runtime:latest
+      - DOCKER_SOCKET=/var/run/docker.sock
+    volumes:
+      - ./data:/data
+      - /var/run/docker.sock:/var/run/docker.sock
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    ports: ["5173:5173"]
+    environment:
+      - VITE_ORCHESTRATOR_URL=http://localhost:8787
+    depends_on: [orchestrator]
