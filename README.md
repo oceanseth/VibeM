@@ -1,5 +1,9 @@
 # VibeM
 
+<p align="center">
+  <img src="assets/logo.webp" alt="VibeM — Spawn Containers. Harness Agents. Infinite Potential." width="320" />
+</p>
+
 **Vibe coding with a focus on VMs.**
 
 Define KPIs in a web UI. The outside agent spawns containerized "VMs," each running a headless-browser GPT-4o agent that drives Tasklet, Mulerun, or any other site to push that KPI toward its target. Eval cron checks how the VMs are doing and surfaces results back to the dashboard. No login — localhost only — clone, set an OpenAI key, run.
